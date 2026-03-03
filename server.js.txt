@@ -1,0 +1,56 @@
+const express = require("express");
+const axios = require("axios");
+require("dotenv").config();
+
+const app = express();
+app.use(express.json());
+
+app.post("/generate-sermon", async (req, res) => {
+  try {
+    const topic = req.body.topic;
+
+    if (!topic) {
+      return res.status(400).json({ error: "주제가 없습니다." });
+    }
+
+    const prompt = `
+당신은 30년 경력의 천재적인 신학 박사이자 영성 깊은 목사입니다. 제시된 주제나 성경 구절을 바탕으로 성도들에게 깊은 울림을 주는 은혜로운 설교를 작성하세요. 구성은 1. 서론(마음을 여는 질문), 2. 본론(성경적 해석과 3가지 대지), 3. 결론(삶의 적용 및 축도)으로 하며, 따뜻하고 권위 있는 문체를 사용하며, 현대적인 비유를 적절히 섞어주세요.
+
+[주제]
+${topic}
+
+구성:
+1. 제목
+2. 본문 말씀
+3. 서론
+4. 본론 3가지
+5. 결론과 기도
+`;
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.json({
+      sermon: response.data.choices[0].message.content
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "서버 오류" });
+  }
+});
+
+app.listen(3000, () => {
+  console.log("서버 시작!");
+});
